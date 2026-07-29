@@ -5,8 +5,8 @@ import cv2
 from PIL import Image
 
 IMG_SIZE  = (224, 224)
-THRESHOLD = 0.5
-CROP_MARGIN = 1.3
+THRESHOLD = 0.515
+CROP_MARGIN = 1.25
 
 st.set_page_config(
     page_title="Deteksi Gambar Deepfake",
@@ -19,32 +19,56 @@ def load_model():
     return keras.models.load_model("v18/DFDetect_model.keras", compile=False)
 
 
+MIN_FACE_SCORE = 5.0  
+
+
 @st.cache_resource
 def load_face_detector():
-    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    return cv2.CascadeClassifier(cascade_path)
+    face_cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    eye_cascade_path  = cv2.data.haarcascades + "haarcascade_eye.xml"
+    return cv2.CascadeClassifier(face_cascade_path), cv2.CascadeClassifier(eye_cascade_path)
 
 
 model = load_model()
 face_detector = load_face_detector()
 
 
-def detect_and_crop_face(pil_img, margin=CROP_MARGIN):
+def detect_and_crop_face(pil_img, margin=CROP_MARGIN, min_score=MIN_FACE_SCORE):
+    face_cascade, eye_cascade = face_detector
+
     img_array = np.array(pil_img)
     gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
 
-    faces = face_detector.detectMultiScale(
+    faces, _, level_weights = face_cascade.detectMultiScale3(
         gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(60, 60)
+        scaleFactor=1.05,
+        minNeighbors=6,
+        minSize=(60, 60),
+        outputRejectLevels=True,
     )
 
     if len(faces) == 0:
         return pil_img, False
 
-    faces = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
-    x, y, w, h = faces[0]
+    # Saring kandidat dengan confidence (level_weight) di bawah ambang,
+    # supaya false positive kecil tidak ikut dipertimbangkan
+    candidates = [(f, s) for f, s in zip(faces, level_weights) if s >= min_score]
+    if not candidates:
+        return pil_img, False
+
+    # Cross-check tiap kandidat: harus ada minimal 1 mata terdeteksi di dalamnya
+    validated = []
+    for (x, y, w, h), score in candidates:
+        roi_gray = gray[y:y + h, x:x + w]
+        eyes = eye_cascade.detectMultiScale(
+            roi_gray, scaleFactor=1.1, minNeighbors=5, minSize=(15, 15)
+        )
+        if len(eyes) >= 1:
+            validated.append(((x, y, w, h), score))
+
+    # Fallback ke candidates kalau eye-check terlalu ketat (mis. kacamata gelap)
+    pool = validated if validated else candidates
+    (x, y, w, h), _ = max(pool, key=lambda c: c[1])  # pilih confidence tertinggi, bukan area terbesar
 
     cx, cy = x + w / 2, y + h / 2
     new_w, new_h = w * margin, h * margin
