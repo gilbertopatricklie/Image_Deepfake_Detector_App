@@ -172,7 +172,7 @@ if uploaded:
 
     st.caption(
         f"Threshold aktif: {THRESHOLD} — "
-        f"gambar dengan probabilitas Fake ≥ {THRESHOLD*100:.0f}% "
+        f"gambar dengan probabilitas Fake ≥ {THRESHOLD*100:.1f}% "
         f"akan diklasifikasikan sebagai FAKE."
     )
 
