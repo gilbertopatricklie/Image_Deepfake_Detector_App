@@ -66,9 +66,9 @@ def detect_and_crop_face(pil_img, margin=CROP_MARGIN, min_score=MIN_FACE_SCORE):
         if len(eyes) >= 1:
             validated.append(((x, y, w, h), score))
 
-    # Fallback ke candidates kalau eye-check terlalu ketat (mis. kacamata gelap)
+   
     pool = validated if validated else candidates
-    (x, y, w, h), _ = max(pool, key=lambda c: c[1])  # pilih confidence tertinggi, bukan area terbesar
+    (x, y, w, h), _ = max(pool, key=lambda c: c[1])  
 
     cx, cy = x + w / 2, y + h / 2
     new_w, new_h = w * margin, h * margin
@@ -86,7 +86,7 @@ def detect_and_crop_face(pil_img, margin=CROP_MARGIN, min_score=MIN_FACE_SCORE):
 def preprocess_for_model(pil_img):
     img_resized = pil_img.resize(IMG_SIZE, resample=Image.BILINEAR)
     arr = np.array(img_resized, dtype=np.float32)
-    arr = np.expand_dims(arr, axis=0)  # (1, 224, 224, 3)
+    arr = np.expand_dims(arr, axis=0)
     return arr
 
 
@@ -94,29 +94,30 @@ def preprocess_for_model(pil_img):
 with st.sidebar:
     st.header("Tentang Aplikasi")
 
-    with st.expander("Model yang digunakan", expanded=True):
+    with st.expander("Informasi Model dan Dataset", expanded=True):
         st.markdown(
             """
-            **Backbone:** EfficientNetV2B0 (transfer learning, fine-tuned)
+            **Backbone:** EfficientNetV2B0 (transfer learning dan fine-tuning)
 
             **Dataset latih:** FaceForensics++ (c23) — kelas Real
             serta 5 jenis manipulasi (Deepfakes, Face2Face, FaceShifter,
             FaceSwap, NeuralTextures)
 
             Wajah pada gambar di-*crop* otomatis sebelum
-            masuk ke model, mengikuti metodologi preprocessing FaceForensics++.
+            masuk ke model, Sehingga area di luar wajah tidak ikut
+            dianalisis dan akurasi deteksi menjadi lebih fokus.
             """
         )
 
     with st.expander("Apa itu gambar deepfake?"):
         st.markdown(
             """
-            Gambar deepfake adalah gambar buatan yang dihasilkan atau
-            dimanipulasi dengan Artificial Intelligence untuk
+            Gambar deepfake adalah gambar yang dihasilkan 
+            dari hasil manipulasi Artificial Intelligence untuk
             mengganti wajah, ekspresi atau hal lainnya.
 
             Alat deteksi ini membantu memberi indikasi, tapi
-            hasilnya bukan merupakan bukti forensik mutlak — terutama pada gambar yang
+            hasilnya tidak dapat dijadikan bukti forensik mutlak — terutama pada gambar yang
             dikompresi berat atau teknik pembuatan deepfake yang baru.
             """
         )
