@@ -126,7 +126,7 @@ with st.sidebar:
     st.caption(f"Threshold klasifikasi yang dipakai: **{THRESHOLD}**")
 
 # ───────────────────────── Main ─────────────────────────
-st.title("Deepfake Face Detector")
+st.title("Deepfake Image Detector")
 
 uploaded = st.file_uploader("Upload gambar wajah", type=["jpg", "jpeg", "png", "webp"])
 
